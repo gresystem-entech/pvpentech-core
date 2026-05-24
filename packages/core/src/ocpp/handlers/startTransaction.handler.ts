@@ -7,15 +7,18 @@
  *  - transaction.create/update + writeOutbox를 prisma.$transaction으로 원자성 보장
  *  - TransactionStarted 이벤트 발행 → Outbox Relay → Redis Stream → Portal Consumer
  *
+ * Phase 4-B 변경:
+ *  - @pvpentech/portal/repositories/partner.repository 제거 (cross-repo 의존 제거)
+ *  - settlementSnapshot: Portal DB의 PartnerProfile 정보는 Core에서 직접 조회 불가
+ *    → null로 설정. Portal Consumer(TransactionStarted 이벤트 수신 시)가 보완.
+ *    TODO(Phase 5): Internal API /api/internal/v1/partners/by-station/:stationId 추가 후 실제 값 조회.
+ *
  * chargeGoalQueue.add는 Portal 도메인이 아닌 Core 내부 잡이므로 유지.
- * partnerRepository import도 Core 내부에서만 사용하므로 현 구조 유지
- * (Phase 3 이관 전까지).
  */
 
 import { prismaCore as prisma } from '@pvpentech/shared/config/database';
 import { logger } from '@pvpentech/shared/config/logger';
 import { chargeGoalQueue } from '@core/jobs/queues';
-import { partnerRepository } from '@pvpentech/portal/repositories/partner.repository';
 import { writeOutbox } from '../../outbox/outboxWriter';
 import type { TransactionStartedPayload } from '@pvpentech/shared/types/events';
 
@@ -42,14 +45,15 @@ export async function startTransactionHandler(
     },
   });
 
-  // 정산 snapshot: StartTransaction 시점의 파트너 설정을 조회해 거래 행에 기록.
-  // partner가 없는 경우(orphan station 등) 모든 snapshot은 null — 수동 정산만 가능.
-  const partner = await partnerRepository.findByStationId(stationId);
+  // 정산 snapshot: Phase 4-B에서 Portal DB 직접 접근 제거 → null로 설정.
+  // Portal Consumer가 TransactionStarted 이벤트를 수신하여 보완.
+  // TODO(Phase 5): Core Internal API에 /api/internal/v1/partners/by-station/:stationId 추가 후
+  //               coreApiClient 호출로 실제 값 조회 구현.
   const settlementSnapshot = {
-    marginRate:         partner?.marginRate         ?? null,
-    settlementSchedule: partner?.settlementSchedule ?? null,
-    settlementDay:      partner?.settlementDay       ?? null,
-    settlementDayOfWeek:partner?.settlementDayOfWeek ?? null,
+    marginRate:         null,
+    settlementSchedule: null,
+    settlementDay:      null,
+    settlementDayOfWeek:null,
   };
 
   if (!transaction) {

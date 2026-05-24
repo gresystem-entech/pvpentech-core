@@ -1,16 +1,14 @@
 {
-  "name": "pvpentech-csms",
+  "name": "pvpentech-core",
   "version": "1.0.0",
-  "description": "Pvpentech CSMS - EV Charging Station Management System",
+  "description": "Pvpentech CSMS Core — OCPP 1.6 WebSocket Gateway + Internal API + Outbox Relay",
   "private": true,
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register apps/server/src/index.ts",
+    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register apps/core-server/src/index.ts",
     "dev:core": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register apps/core-server/src/index.ts",
-    "dev:portal": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register apps/portal-server/src/index.ts",
     "build": "tsc -p tsconfig.build.json",
-    "start": "node -r module-alias/register apps/server/dist/apps/server/src/index.js",
-    "start:core": "node -r module-alias/register apps/server/dist/apps/core-server/src/index.js",
-    "start:portal": "node -r module-alias/register apps/server/dist/apps/portal-server/src/index.js",
+    "start": "node -r module-alias/register dist/apps/core-server/src/index.js",
+    "start:core": "node -r module-alias/register dist/apps/core-server/src/index.js",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
@@ -78,8 +76,9 @@
     "typescript": "^5.4.0"
   },
   "_moduleAliases": {
-    "@pvpentech/shared": "apps/server/dist/packages/shared/src",
-    "@pvpentech/core": "apps/server/dist/packages/core/src",
-    "@pvpentech/portal": "apps/server/dist/packages/portal/src"
+    "@pvpentech/shared": "dist/packages/shared/src",
+    "@pvpentech/core": "dist/packages/core/src",
+    "@core": "dist/packages/core/src",
+    "@shared": "dist/packages/shared/src"
   }
 }

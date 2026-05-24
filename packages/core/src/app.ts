@@ -18,7 +18,7 @@ import { createInternalApiRouter } from './internal-api/index';
 import { firmwareController } from './controllers/firmware.controller';
 import { ProvisionController } from './controllers/provision.controller';
 import { provisionService } from './services/provision.service';
-import { manufacturerAuth } from '@pvpentech/portal/middlewares/manufacturerAuth.middleware';
+import { manufacturerAuth } from './middlewares/manufacturerAuth.middleware';
 import { provisionRateLimiter } from '@pvpentech/shared/middlewares/rateLimiter.middleware';
 import provisionRoutes from './routes/provision.routes';
 
