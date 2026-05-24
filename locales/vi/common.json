@@ -1,0 +1,16 @@
+{
+  "success": "Xử lý thành công.",
+  "created": "Tạo thành công.",
+  "updated": "Cập nhật thành công.",
+  "deleted": "Xóa thành công.",
+  "internalServer": "Đã xảy ra lỗi máy chủ nội bộ.",
+  "notImplemented": "Tính năng này chưa được triển khai.",
+  "badGateway": "Đã xảy ra lỗi cổng kết nối.",
+  "serviceUnavailable": "Dịch vụ tạm thời không khả dụng.",
+  "settlement": {
+    "empty": "Không có giao dịch để quyết toán",
+    "transferSuccess": "Chuyển khoản hoàn tất",
+    "transferFailed": "Chuyển khoản thất bại: {{reason}}",
+    "partnerBankInfoMissing": "Chưa cấu hình thông tin ngân hàng đối tác"
+  }
+}

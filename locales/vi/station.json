@@ -1,0 +1,19 @@
+{
+  "notFound": "Không tìm thấy trạm sạc.",
+  "alreadyExists": "Trạm sạc đã được đăng ký.",
+  "invalidId": "Định dạng ID trạm sạc không hợp lệ.",
+  "siteNotFound": "Không tìm thấy địa điểm sạc.",
+  "siteAlreadyExists": "Địa điểm sạc đã được đăng ký.",
+  "resetSuccess": "Đã gửi lệnh đặt lại trạm sạc.",
+  "passwordResetSuccess": "Mật khẩu trạm sạc đã được đặt lại.",
+  "connectorNotFound": "Không tìm thấy cổng kết nối.",
+  "faultLogNotFound": "Không tìm thấy nhật ký lỗi.",
+  "faultResolved": "Lỗi đã được đánh dấu là đã giải quyết.",
+  "provisionNotFound": "Không tìm thấy bản ghi cấp phép.",
+  "provisionRevoked": "Đã thu hồi cấp phép trạm sạc.",
+  "serialNotInWhitelist": "Số sê-ri không có trong danh sách được phép.",
+  "alreadyProvisioned": "Trạm sạc này đã được cấp phép.",
+  "offline": "Trạm sạc đang ngoại tuyến.",
+  "activeSession": "Không thể xóa: đang có phiên sạc hoạt động. Vui lòng thử lại sau khi phiên sạc kết thúc.",
+  "hasTransactionHistory": "Không thể xóa trạm sạc đã có lịch sử sạc. Các trạm có giao dịch đã hoàn tất được giữ lại để bảo toàn dữ liệu thanh toán và quyết toán."
+}

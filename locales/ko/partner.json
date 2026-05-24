@@ -1,0 +1,14 @@
+{
+  "notFound": "파트너를 찾을 수 없습니다.",
+  "alreadyExists": "이미 등록된 파트너입니다.",
+  "approved": "파트너 계정이 승인되었습니다.",
+  "rejected": "파트너 계정이 거부되었습니다.",
+  "deactivated": "파트너 계정이 비활성화되었습니다.",
+  "marginUpdated": "수수료율이 업데이트되었습니다.",
+  "settlementDayUpdated": "정산일이 업데이트되었습니다.",
+  "bankAccountUpdated": "정산 계좌가 업데이트되었습니다.",
+  "settleSuccess": "정산이 완료되었습니다.",
+  "settlementNotFound": "정산 내역을 찾을 수 없습니다.",
+  "deleted": "파트너가 삭제되었습니다.",
+  "pendingApproval": "승인 대기 중인 파트너입니다."
+}

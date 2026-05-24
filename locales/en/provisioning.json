@@ -1,0 +1,12 @@
+{
+  "provisionSuccess": "Provisioning completed successfully.",
+  "provisionRejected": "Unregistered charging station.",
+  "alreadyProvisioned": "This station has already been provisioned.",
+  "authHeaderMissing": "Authentication headers are missing.",
+  "authFailed": "Authentication failed.",
+  "manufacturerNotFound": "Unregistered manufacturer.",
+  "manufacturerInactive": "Manufacturer channel is inactive.",
+  "invalidBody": "Invalid request format.",
+  "serialNotFound": "Unregistered charging station.",
+  "manufacturerMismatch": "Unregistered charging station."
+}

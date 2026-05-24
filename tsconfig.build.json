@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./apps/server/dist",
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": [
+    "packages/shared/src/**/*",
+    "packages/core/src/**/*",
+    "packages/portal/src/**/*",
+    "apps/server/src/**/*",
+    "apps/core-server/src/**/*",
+    "apps/portal-server/src/**/*"
+  ],
+  "exclude": ["node_modules", "apps/server/dist", "scripts", "tests"]
+}

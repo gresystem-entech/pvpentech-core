@@ -1,0 +1,14 @@
+{
+  "notFound": "User not found.",
+  "alreadyExists": "User already registered.",
+  "cannotModifySelf": "You cannot delete or deactivate your own account.",
+  "activated": "User account has been activated.",
+  "deactivated": "User account has been deactivated.",
+  "cardNotFound": "Registered card not found.",
+  "cardAdded": "Card has been registered.",
+  "cardDeleted": "Card has been deleted.",
+  "tokenBlocked": "Card has been blocked.",
+  "tokenUnblocked": "Card block has been removed.",
+  "passwordChanged": "Password has been changed.",
+  "profileUpdated": "Profile has been updated."
+}

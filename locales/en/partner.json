@@ -1,0 +1,14 @@
+{
+  "notFound": "Partner not found.",
+  "alreadyExists": "Partner already registered.",
+  "approved": "Partner account has been approved.",
+  "rejected": "Partner account has been rejected.",
+  "deactivated": "Partner account has been deactivated.",
+  "marginUpdated": "Commission rate has been updated.",
+  "settlementDayUpdated": "Settlement day has been updated.",
+  "bankAccountUpdated": "Settlement account has been updated.",
+  "settleSuccess": "Settlement completed.",
+  "settlementNotFound": "Settlement record not found.",
+  "deleted": "Partner has been deleted.",
+  "pendingApproval": "Partner is pending approval."
+}

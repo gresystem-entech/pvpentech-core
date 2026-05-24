@@ -1,0 +1,1076 @@
+// prisma/schema.prisma
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["core", "portal", "public"]
+}
+
+// ─────────────────────────────────────────────
+// 기기 및 충전소 관리
+// ─────────────────────────────────────────────
+
+model ChargingStation {
+  id                String        @id @db.VarChar(50) // "EN" + 7자리 숫자 형식 (프로비저닝 후 발급)
+  modelName         String?       @db.VarChar(100)
+  vendorName        String?       @db.VarChar(100) // 제조사명 (BootNotification에서 업데이트)
+  manufacturer      String?       @db.VarChar(100) // CS 등록 시 입력 제조사명
+  firmwareVersion   String?       @db.VarChar(50)
+  firmwareStatus    String?       @db.VarChar(30) // 최신 FirmwareStatusNotification (Idle/Downloading/Downloaded/Installing/Installed/InstallationFailed 등)
+  diagnosticsStatus String?       @db.VarChar(30) // 최신 DiagnosticsStatusNotification (Idle/Uploading/Uploaded/UploadFailed)
+  serialNumber      String?       @db.VarChar(100)
+  passwordHash      String?       @db.VarChar(255) // OCPP Basic Auth 비밀번호 해시
+  status            StationStatus @default(Offline)
+  lastHeartbeatAt   DateTime?
+  siteId            Int? // ChargingSite.id 참조 — Logical FK (cross-schema FK 제거, Phase 3-B)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // site relation 제거 (Phase 3-B: core → portal cross-schema FK → Logical FK로 전환)
+  connectors          Connector[]
+  transactions        Transaction[]
+  deviceVariables     DeviceVariable[]
+  ocppMessages        OcppMessage[]
+  ocppCommandResults  OcppCommandResult[]
+  diagnosticsRequests DiagnosticsRequest[]
+  firmwareProgress    FirmwareCampaignProgress[]
+  faultLogs           FaultLog[]
+  offlineLogs         OfflineLog[]
+  provisioning        ChargerProvisioning?
+
+  @@map("charging_station")
+  @@schema("core")
+}
+
+enum StationStatus {
+  Online // 정상 연결, 대기
+  Offline // 통신 끊김
+  Faulted // 장애 발생
+  Inspecting // 조치중 (기사 현장 출동)
+  CommunicationFault // 통신장애 (연결됐으나 응답 이상)
+  Unknown // 상태 미확인
+
+  @@schema("core")
+}
+
+model Connector {
+  id            Int             @id @default(autoincrement())
+  stationId     String          @db.VarChar(50)
+  connectorId   Int // OCPP connector number (1 이상)
+  connectorType String?         @db.VarChar(30) // cCCS1, cCCS2, cType2 등
+  currentStatus ConnectorStatus @default(Available)
+
+  // OCPP 1.6 StatusNotification 부가 정보 (Phase 2 보강)
+  errorCode       String?   @db.VarChar(50) // ConnectorLockFailure, OverCurrentFailure 등
+  info            String?   @db.VarChar(255) // 자유 형식 상세 설명
+  vendorId        String?   @db.VarChar(255)
+  vendorErrorCode String?   @db.VarChar(50)
+  statusTimestamp DateTime? // 충전기 측 보고 시각 (UTC)
+
+  updatedAt DateTime @updatedAt
+
+  station ChargingStation @relation(fields: [stationId], references: [id])
+
+  @@unique([stationId, connectorId])
+  @@map("connector")
+  @@schema("core")
+}
+
+enum ConnectorStatus {
+  Available
+  Preparing
+  Charging
+  SuspendedEVSE
+  SuspendedEV
+  Finishing
+  Reserved
+  Unavailable
+  Faulted
+
+  @@schema("core")
+}
+
+model ChargingSite {
+  id                 Int      @id @default(autoincrement())
+  siteName           String   @db.VarChar(200)
+  address            String?  @db.VarChar(500)
+  unitPrice          Decimal  @default(250) @db.Decimal(10, 2) // 원/kWh
+  rebateRate         Decimal  @default(0) @db.Decimal(5, 2) // 리베이트율 %
+  partnerId          Int?
+  chargeOperatorName String?  @db.VarChar(200) // 충전사업자명
+  managerName        String?  @db.VarChar(100) // 충전소 관리자 이름
+  managerPhone       String?  @db.VarChar(20) // 충전소 관리자 전화번호
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  partner      PartnerProfile?           @relation(fields: [partnerId], references: [id])
+  // chargingStations 역방향 relation 제거 (Phase 3-B: ChargingStation.siteId → Logical FK로 전환)
+  settlements  Settlement[]
+  priceHistory SitePriceHistory[]
+  sessions     ChargeSessionProjection[] // Phase 3-B 신규 역방향 relation
+
+  @@map("charging_site")
+  @@schema("portal")
+}
+
+model SitePriceHistory {
+  id            Int      @id @default(autoincrement())
+  siteId        Int
+  previousPrice Decimal  @db.Decimal(10, 2)
+  newPrice      Decimal  @db.Decimal(10, 2)
+  changedBy     String   @db.VarChar(150)
+  changedAt     DateTime @default(now())
+
+  site ChargingSite @relation(fields: [siteId], references: [id])
+
+  @@index([siteId])
+  @@map("site_price_history")
+  @@schema("portal")
+}
+
+// ─────────────────────────────────────────────
+// 사용자 및 인증
+// ─────────────────────────────────────────────
+
+model User {
+  id           Int        @id @default(autoincrement())
+  username     String     @unique @db.VarChar(150)
+  passwordHash String     @db.VarChar(255)
+  email        String?    @db.VarChar(254)
+  firstName    String?    @db.VarChar(50)
+  lastName     String?    @db.VarChar(50)
+  phone        String?    @db.VarChar(20)
+  language     String?    @db.VarChar(10) // ko | en | vi
+  role         UserRole   @default(customer)
+  status       UserStatus @default(active)
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  partnerProfile PartnerProfile?
+  paymentCards   PaymentCard[]
+  idTokens       IdToken[]
+  refundLogs     RefundLog[]
+  transactions   Transaction[]
+
+  @@map("user")
+  @@schema("portal")
+}
+
+enum UserRole {
+  cs
+  partner
+  customer
+
+  @@schema("portal")
+}
+
+enum UserStatus {
+  pending
+  active
+  inactive
+
+  @@schema("portal")
+}
+
+model PartnerProfile {
+  id                  Int                @id @default(autoincrement())
+  userId              Int                @unique
+  businessName        String             @db.VarChar(200)
+  businessNo          String?            @db.VarChar(20)
+  contactPhone        String?            @db.VarChar(20)
+  // 정산 관련 필드
+  marginRate          Decimal            @default(0) @db.Decimal(5, 2) // 마진율 % (예: 10.00 = 10%)
+  settlementDay       Int?               @db.SmallInt // 정산일 (1~31, 월간 정산용)
+  settlementSchedule  SettlementSchedule @default(monthly) // 정산 주기
+  settlementDayOfWeek Int?               @db.SmallInt // 1=월요일 ~ 5=금요일 (주간 정산일 — 월~금만 허용)
+  // 계좌정보 (정산금 수령용)
+  bankName            String?            @db.VarChar(100) // 은행명
+  bankAccount         String?            @db.VarChar(50) // 계좌번호
+  bankAccountHolder   String?            @db.VarChar(100) // 예금주
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  user          User                      @relation(fields: [userId], references: [id])
+  chargingSites ChargingSite[]
+  settlements   Settlement[]
+  sessions      ChargeSessionProjection[] // Phase 3-B 신규 역방향 relation
+
+  @@map("partner_profile")
+  @@schema("portal")
+}
+
+enum SettlementSchedule {
+  daily
+  weekly
+  monthly
+
+  @@schema("portal")
+}
+
+model PaymentCard {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  nickname   String?  @db.VarChar(100)
+  cardLast4  String   @db.VarChar(4)
+  cardType   String?  @db.VarChar(50) // Visa, Mastercard, 국내카드 등
+  billingKey String?  @db.VarChar(500) // PG 빌링키 (추후 PG 연동)
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("payment_card")
+  @@schema("portal")
+}
+
+// OCPP IdTag 인증 정보 (RFID 카드 등)
+// Master: Core. RFID Authorize 핸들러에서 조회. Portal은 RFID 관리 CRUD 시 Core API 경유.
+// userId FK는 portal.user를 참조하는 cross-schema relation (Phase 3-B에서 Logical FK로 변경 예정)
+model IdToken {
+  id         Int           @id @default(autoincrement())
+  idTag      String        @unique @db.VarChar(50) // RFID 태그 값
+  type       IdTokenType   @default(ISO14443)
+  status     IdTokenStatus @default(Accepted)
+  expiryDate DateTime?
+  userId     Int?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  user         User?         @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+
+  @@map("id_token")
+  @@schema("core")
+}
+
+enum IdTokenType {
+  Central
+  eMAID
+  ISO14443
+  ISO15693
+  KeyCode
+  Local
+  MacAddress
+  NoAuthorization
+
+  @@schema("core")
+}
+
+enum IdTokenStatus {
+  Accepted
+  Blocked
+  Expired
+  Invalid
+  ConcurrentTx
+
+  @@schema("core")
+}
+
+// ─────────────────────────────────────────────
+// 트랜잭션 및 계량
+// ─────────────────────────────────────────────
+
+// Master: Core — OCPP 순수 데이터만 보유 (Phase 3-B 완료)
+// userId FK는 portal.user를 참조하는 cross-schema relation (장기: Logical FK 검토)
+// paymentStatus, settlementId 필드 → Portal ChargeSessionProjection으로 이전 (Phase 3-B)
+model Transaction {
+  id                  Int                 @id @default(autoincrement())
+  sessionId           String              @unique @db.VarChar(100) // 앱에 노출되는 세션 ID
+  ocppTransactionId   Int? // StartTransaction 응답으로 받는 OCPP transactionId
+  stationId           String              @db.VarChar(50)
+  connectorId         Int
+  idTag               String?             @db.VarChar(50)
+  goalType            GoalType? // 앱에서 설정한 충전 목표
+  goalValue           Decimal?            @db.Decimal(10, 2)
+  status              TransactionStatus   @default(Pending)
+  meterStart          Int                 @default(0) // Wh
+  meterEnd            Int?
+  timeStart           DateTime            @default(now())
+  timeEnd             DateTime?
+  costVnd             Int? // 최종 요금 (VND)
+  failReason          String?             @db.VarChar(255)
+  // 결제 관련 필드 (결제 상태/정산 FK는 Phase 3-B에서 Portal ChargeSessionProjection으로 이전)
+  paymentMethod       String?             @db.VarChar(50) // 카드, 앱결제 등
+  pgTransactionId     String?             @db.VarChar(200) // PG사 거래번호
+  unitPriceVnd        Int? // 충전 시점 단가 (VND/kWh)
+  marginRate          Decimal?            @db.Decimal(5, 2) // 충전 시점 리베이트율 스냅샷 (%)
+  // 정산 스냅샷 — StartTransaction 시점의 파트너 정산 설정 snapshot (옵션 C: Core에 유지)
+  settlementSchedule  SettlementSchedule? // 정산 주기 snapshot (daily|weekly|monthly)
+  settlementDay       Int?                @db.SmallInt // 월간 정산일 snapshot (1~31)
+  settlementDayOfWeek Int?                @db.SmallInt // 주간 정산 요일 snapshot (1=월~5=금)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  userId Int? // 충전 요청 사용자 ID (cross-schema: portal.user)
+
+  station       ChargingStation @relation(fields: [stationId], references: [id])
+  idTokenRecord IdToken?        @relation(fields: [idTag], references: [idTag])
+  meterValues   MeterValue[]
+  // refundLog, settlement relation 제거 (Phase 3-B: RefundLog → Logical FK, settlementId 필드 제거)
+  user          User?           @relation(fields: [userId], references: [id])
+
+  @@index([stationId])
+  @@index([timeStart])
+  @@index([status])
+  @@index([userId])
+  @@map("transaction")
+  @@schema("core")
+}
+
+// PaymentStatus enum — Phase 3-B에서 portal schema로 이전 (ChargeSessionProjection에서 사용)
+enum PaymentStatus {
+  pending // 결제 대기
+  paid // 결제 완료
+  failed // 결제 실패
+  cancelled // 취소됨
+  refunded // 환불됨
+  deferred // free 모드 충전 후 자동 청구 대기
+
+  @@schema("portal")
+}
+
+enum TransactionStatus {
+  Pending // RemoteStart 전송, 차량 연결 대기
+  Active // 충전 중
+  Stopped // 정상 종료
+  Failed // 실패 (차량 미연결 등)
+
+  @@schema("core")
+}
+
+enum GoalType {
+  time
+  kwh
+  amount
+  free
+
+  @@schema("core")
+}
+
+// 시계열 계량 데이터 — 데이터량이 많으므로 파티셔닝 권장
+model MeterValue {
+  id            Int      @id @default(autoincrement())
+  transactionId Int
+  timestamp     DateTime
+  measurand     String   @db.VarChar(100) // Energy.Active.Import.Register, Voltage 등
+  value         Decimal  @db.Decimal(12, 4)
+  unit          String?  @db.VarChar(20) // Wh, kWh, V, A, W 등
+  phase         String?  @db.VarChar(10)
+
+  // OCPP 1.6 SampledValue 보강 (Phase 2)
+  context  String? @db.VarChar(30) // Sample.Periodic, Sample.Clock, Transaction.Begin/End, Trigger, Other
+  format   String? @db.VarChar(20) // Raw, SignedData
+  location String? @db.VarChar(20) // Body, Cable, EV, Inlet, Outlet
+
+  createdAt DateTime @default(now())
+
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+
+  @@index([transactionId, timestamp])
+  @@map("meter_value")
+  @@schema("core")
+}
+
+// ─────────────────────────────────────────────
+// 기기 설정 변수
+// ─────────────────────────────────────────────
+
+model DeviceVariable {
+  id            Int      @id @default(autoincrement())
+  stationId     String   @db.VarChar(50)
+  componentName String   @db.VarChar(100) // 예: 'AuthCtrlr'
+  variableName  String   @db.VarChar(100) // 예: 'AuthorizeRemoteStart'
+  variableValue String?  @db.Text
+  isReadonly    Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
+
+  station ChargingStation @relation(fields: [stationId], references: [id])
+
+  @@unique([stationId, componentName, variableName])
+  @@map("device_variable")
+  @@schema("core")
+}
+
+// ─────────────────────────────────────────────
+// 운영 로그 및 설정
+// ─────────────────────────────────────────────
+
+model OcppMessage {
+  id        Int      @id @default(autoincrement())
+  stationId String   @db.VarChar(50)
+  messageId String   @db.VarChar(100)
+  direction Int // OCPP MessageTypeId: 2=Call, 3=CallResult, 4=CallError
+  inbound   Boolean  @default(true) // true=CP→CSMS 수신, false=CSMS→CP 송신
+  action    String?  @db.VarChar(50)
+  payload   String   @db.Text
+  createdAt DateTime @default(now())
+
+  station ChargingStation @relation(fields: [stationId], references: [id])
+
+  @@index([stationId, createdAt])
+  @@index([createdAt])
+  @@index([action])
+  @@index([stationId, action])
+  @@index([inbound, createdAt])
+  @@map("ocpp_message")
+  @@schema("core")
+}
+
+// ─────────────────────────────────────────────
+// CSMS → CP 명령 응답 결과 (Phase 3, REQ-CONF-001)
+// 인메모리 pendingRequests 와 별개로, 송신한 명령의 응답을 영속화하여
+// 운영자가 후행 조회·감사할 수 있도록 한다 (예: GetConfiguration 결과,
+// Reset 응답 status, 타임아웃/에러 이력).
+// ─────────────────────────────────────────────
+model OcppCommandResult {
+  id               Int               @id @default(autoincrement())
+  messageId        String            @unique @db.VarChar(50) // OCPP UniqueId (UUID)
+  stationId        String?           @db.VarChar(50) // station 삭제 시 SetNull 로 이력 보존
+  action           String            @db.VarChar(50) // Reset, GetConfiguration, ChangeAvailability, ...
+  status           OcppCommandStatus @default(pending)
+  requestPayload   Json
+  responsePayload  Json?
+  errorCode        String?           @db.VarChar(50) // CallError 시 errorCode
+  errorDescription String?           @db.VarChar(500)
+  requestedBy      String?           @db.VarChar(150) // 발송자 (CS 운영자 username)
+  sentAt           DateTime          @default(now())
+  receivedAt       DateTime?
+
+  station ChargingStation? @relation(fields: [stationId], references: [id], onDelete: SetNull)
+
+  @@index([stationId, sentAt])
+  @@index([action, sentAt])
+  @@index([status, sentAt])
+  @@map("ocpp_command_result")
+  @@schema("core")
+}
+
+enum OcppCommandStatus {
+  pending // 송신 후 응답 대기
+  completed // CallResult 정상 수신
+  error // CallError 수신
+  timeout // 응답 타임아웃
+
+  @@schema("core")
+}
+
+// ─────────────────────────────────────────────
+// 진단 파일 업로드 요청 추적 (Phase 4-A, REQ-DIAG-002)
+// GetDiagnostics 빌더 호출 시 INSERT, DiagnosticsStatusNotification
+// 수신마다 status 갱신, fileName 은 GetDiagnostics.conf 응답에서 채움.
+// ─────────────────────────────────────────────
+model DiagnosticsRequest {
+  id             Int               @id @default(autoincrement())
+  messageId      String            @unique @db.VarChar(50) // GetDiagnostics 호출 시 발급한 OCPP UniqueId
+  stationId      String            @db.VarChar(50)
+  status         DiagnosticsStatus @default(Idle)
+  fileName       String?           @db.VarChar(255) // GetDiagnostics.conf 응답의 fileName
+  uploadLocation String?           @db.VarChar(500) // 업로드 대상 URL (FTP/SFTP/HTTPS PUT)
+  startTime      DateTime?
+  stopTime       DateTime?
+  retries        Int?
+  retryInterval  Int?
+  requestedBy    String?           @db.VarChar(150)
+  requestedAt    DateTime          @default(now())
+  completedAt    DateTime?
+
+  station ChargingStation @relation(fields: [stationId], references: [id])
+
+  @@index([stationId, requestedAt])
+  @@index([status])
+  @@map("diagnostics_request")
+  @@schema("core")
+}
+
+enum DiagnosticsStatus {
+  Idle // 초기 상태 / 진행 없음
+  Uploading // 진단 파일 업로드 중
+  Uploaded // 업로드 완료
+  UploadFailed // 업로드 실패
+
+  @@schema("core")
+}
+
+// ─────────────────────────────────────────────
+// 펌웨어 관리 (Phase 4-B, REQ-FW-001~003)
+// ─────────────────────────────────────────────
+
+/// 펌웨어 마스터 — 운영자가 업로드한 펌웨어 바이너리 메타데이터
+model Firmware {
+  id            Int      @id @default(autoincrement())
+  filename      String   @unique @db.VarChar(255) // 저장 파일명 (예: sha256_prefix-firmware.bin)
+  originalName  String   @db.VarChar(255) // 업로드 시 원본 파일명
+  version       String   @db.VarChar(50)
+  chargerModel  String?  @db.VarChar(100)
+  chargerVendor String?  @db.VarChar(100)
+  fileSize      Int // bytes
+  sha256        String   @unique @db.VarChar(64) // 동일 바이너리 재업로드 방지
+  uploadedBy    String   @db.VarChar(150)
+  uploadedAt    DateTime @default(now())
+  isActive      Boolean  @default(true) // 비활성 시 신규 캠페인 시작 불가
+  notes         String?  @db.Text
+
+  campaigns FirmwareCampaign[]
+
+  @@index([chargerModel, chargerVendor])
+  @@index([isActive, uploadedAt])
+  @@map("firmware")
+  @@schema("core")
+}
+
+/// 펌웨어 일괄 업데이트 캠페인 — 동일 펌웨어를 여러 충전기에 적용
+model FirmwareCampaign {
+  id           Int                    @id @default(autoincrement())
+  firmwareId   Int
+  targetFilter Json // { stationIds?: string[], model?: string, vendor?: string, siteId?: number }
+  status       FirmwareCampaignStatus @default(running)
+  startedBy    String                 @db.VarChar(150)
+  startedAt    DateTime               @default(now())
+  completedAt  DateTime?
+  notes        String?                @db.Text
+
+  firmware Firmware                   @relation(fields: [firmwareId], references: [id])
+  progress FirmwareCampaignProgress[]
+
+  @@index([firmwareId])
+  @@index([status, startedAt])
+  @@map("firmware_campaign")
+  @@schema("core")
+}
+
+enum FirmwareCampaignStatus {
+  running // 진행 중 (1대 이상 미완료)
+  completed // 모든 충전기 완료 (성공+실패 집계)
+  cancelled // 운영자가 취소
+
+  @@schema("core")
+}
+
+/// 캠페인별 충전기 단위 진행 상황
+model FirmwareCampaignProgress {
+  id          Int                            @id @default(autoincrement())
+  campaignId  Int
+  stationId   String?                        @db.VarChar(50) // station 삭제 시 SetNull
+  status      FirmwareCampaignProgressStatus @default(queued)
+  startedAt   DateTime? // UpdateFirmware 송신 시각
+  completedAt DateTime? // installed/failed 시각
+  error       String?                        @db.VarChar(500)
+  updatedAt   DateTime                       @updatedAt
+
+  campaign FirmwareCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  station  ChargingStation? @relation(fields: [stationId], references: [id], onDelete: SetNull)
+
+  @@unique([campaignId, stationId])
+  @@index([campaignId, status])
+  @@index([stationId])
+  @@map("firmware_campaign_progress")
+  @@schema("core")
+}
+
+enum FirmwareCampaignProgressStatus {
+  queued // 캠페인 등록, 명령 송신 대기
+  sent // UpdateFirmware 송신 완료
+  downloading // FirmwareStatusNotification: Downloading
+  downloaded // FirmwareStatusNotification: Downloaded
+  installing // FirmwareStatusNotification: Installing
+  installed // FirmwareStatusNotification: Installed
+  failed // DownloadFailed / InstallationFailed
+  send_error // CSMS→CP 송신 실패 (충전기 오프라인 등)
+
+  @@schema("core")
+}
+
+model FaultLog {
+  id          Int         @id @default(autoincrement())
+  stationId   String      @db.VarChar(50)
+  reportedAt  DateTime    @default(now())
+  faultType   FaultType
+  description String?     @db.Text
+  resolvedAt  DateTime?
+  reportedBy  String?     @db.VarChar(150) // CS 담당자 username
+  status      FaultStatus @default(Received)
+  createdAt   DateTime    @default(now())
+
+  station ChargingStation @relation(fields: [stationId], references: [id])
+
+  @@index([stationId])
+  @@index([reportedAt])
+  @@index([resolvedAt])
+  @@index([status])
+  @@map("fault_log")
+  @@schema("core")
+}
+
+enum FaultType {
+  ConnectorFault // 커넥터 불량
+  CommunicationError // 통신 오류
+  PowerFault // 전원 불량
+  Other // 기타
+
+  @@schema("core")
+}
+
+enum FaultStatus {
+  Received // 접수
+  InProgress // 조치중
+  Resolved // 완료
+
+  @@schema("core")
+}
+
+// ─────────────────────────────────────────────
+// 충전기 제조사 (v2.0 신규)
+// ─────────────────────────────────────────────
+
+/// 충전기 제조사 테이블 — v2.0 신규
+model Manufacturer {
+  id        Int      @id @default(autoincrement())
+  channelId String   @unique @db.VarChar(50) // x-channel 헤더 값 (CS가 부여)
+  name      String   @db.VarChar(100) // 제조사 이름
+  tokenHash String   @db.VarChar(255) // bcrypt hash of x-token (평문 비저장)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  provisionings ChargerProvisioning[]
+
+  @@index([channelId])
+  @@map("manufacturer")
+  @@schema("core")
+}
+
+// ─────────────────────────────────────────────
+// 프로비저닝 (충전기 최초 설치 등록)
+// ─────────────────────────────────────────────
+
+model ChargerProvisioning {
+  id            Int                @id @default(autoincrement())
+  serialNumber  String             @unique @db.VarChar(100) // 제조사 시리얼번호
+  modelName     String?            @db.VarChar(100) // 충전기 모델명
+  clientId      String?            @unique @db.VarChar(50) // 사전 지정 충전기 아이디 (미지정 시 자동 생성)
+  stationId     String?            @unique @db.VarChar(50) // 프로비저닝 후 발급된 "EN" + 7자리
+  status        ProvisioningStatus @default(registered)
+  registeredBy  String?            @db.VarChar(150) // CS 담당자 username (사전 등록자)
+  provisionedAt DateTime? // 프로비저닝 완료 시각
+  rejectedAt    DateTime? // Reject 처리 시각
+  rejectReason  String?            @db.VarChar(255)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  // v2.0 신규 추가
+  manufacturerId Int?
+  manufacturer   Manufacturer? @relation(fields: [manufacturerId], references: [id])
+
+  chargingStation ChargingStation? @relation(fields: [stationId], references: [id])
+
+  @@index([serialNumber])
+  @@index([status])
+  @@index([manufacturerId])
+  @@map("charger_provisioning")
+  @@schema("core")
+}
+
+enum ProvisioningStatus {
+  registered // CS가 사전 등록 (프로비저닝 대기)
+  provisioned // 프로비저닝 완료 (충전기 접속정보 수신 완료)
+  rejected // 거부됨 (미등록 시리얼번호)
+  revoked // 관리자 수동 무효화
+
+  @@schema("core")
+}
+
+// 충전기 아이디 시퀀스 관리 ("EN" + 7자리 숫자)
+model StationIdSequence {
+  id         Int @id @default(1)
+  lastNumber Int @default(1000000) // 다음 발급 번호 -1 (increment 후 사용)
+
+  @@map("station_id_sequence")
+  @@schema("core")
+}
+
+// ─────────────────────────────────────────────
+// 정산
+// ─────────────────────────────────────────────
+
+model Settlement {
+  id                   Int              @id @default(autoincrement())
+  partnerId            Int // 파트너
+  siteId               Int? // 충전소 (null = 파트너 전체 합산)
+  stationId            String?          @db.VarChar(50) // 충전기 (null = 충전소 전체 합산)
+  periodType           SettlementPeriod // 정산 기준 기간 단위
+  periodStart          DateTime // 정산 기간 시작
+  periodEnd            DateTime // 정산 기간 종료
+  totalKwh             Decimal          @db.Decimal(12, 4) // 총 충전량
+  totalAmount          Int // 총 충전금액 (원)
+  marginRate           Decimal?         @db.Decimal(5, 2) // 정산 시점 마진율 스냅샷 (그룹 내 균일 마진율이면 해당 값, 혼합이면 NULL)
+  settlementAmount     Int // 파트너 정산금액 (totalAmount × marginRate / 100)
+  paidAmount           Int              @default(0) // 실제 송금 완료금액
+  status               SettlementStatus @default(pending)
+  settledAt            DateTime? // 송금 완료 시각
+  settledBy            String?          @db.VarChar(150) // CS 담당자 username
+  note                 String?          @db.VarChar(500)
+  // MB Bank 송금 결과 필드
+  transferRef          String?          @db.VarChar(200) // MB Bank 송금 거래번호 (성공 시)
+  transferAttemptedAt  DateTime? // 마지막 송금 시도 시각
+  failureReason        String?          @db.VarChar(500) // 실패 사유 (status=failed/needs_review 시)
+  failedTransactionIds Json? // M: 확정 실패 시 audit용 거래 ID snapshot [id1, id2, ...]
+  // 정산 schedule snapshot 키 — Transaction.settlementSchedule 그룹 중복 체크용
+  settlementDay        Int?             @db.SmallInt // monthly snapshot 키
+  settlementDayOfWeek  Int?             @db.SmallInt // weekly snapshot 키
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  partner  PartnerProfile            @relation(fields: [partnerId], references: [id])
+  site     ChargingSite?             @relation(fields: [siteId], references: [id])
+  // transactions relation 제거 (Phase 3-B: Transaction.settlementId 필드 제거로 relation 불가)
+  // ChargeSessionProjection.settlementId 로 대체
+  sessions ChargeSessionProjection[] // Phase 3-B 신규 역방향 relation
+
+  @@index([partnerId, periodStart])
+  @@index([siteId, periodStart])
+  @@index([status])
+  @@index([partnerId, periodEnd, periodType, settlementDay, settlementDayOfWeek, marginRate])
+  @@map("settlement")
+  @@schema("portal")
+}
+
+enum SettlementPeriod {
+  daily
+  weekly
+  monthly
+  manual // 수동 정산 (관리자 트리거 → 즉시 송금)
+
+  @@schema("portal")
+}
+
+enum SettlementStatus {
+  pending // 정산 대기
+  completed // 송금 완료
+  cancelled // 취소됨
+  failed // 확정 실패 — 거래 link 해제, 다음 cron이 자동 재시도
+  needs_review // M: 모호한 실패 (timeout 등) — 거래 link 유지, 운영자 확인 필요
+
+  @@schema("portal")
+}
+
+// ─────────────────────────────────────────────
+// Offline 이력
+// ─────────────────────────────────────────────
+
+model OfflineLog {
+  id         Int           @id @default(autoincrement())
+  stationId  String        @db.VarChar(50)
+  siteId     Int?
+  partnerId  Int?
+  status     StationStatus // 기록 시점의 상태
+  loggedAt   DateTime      @default(now()) // offline 확정 일시
+  resolvedAt DateTime? // 복구 일시
+
+  station ChargingStation @relation(fields: [stationId], references: [id])
+
+  @@index([stationId, loggedAt])
+  @@index([loggedAt])
+  @@map("offline_log")
+  @@schema("core")
+}
+
+// ─────────────────────────────────────────────
+// 환불 이력
+// ─────────────────────────────────────────────
+
+// transactionId → core.transaction: Phase 3-B에서 Logical FK로 변경 완료
+// (FK 제약 제거, transactionId Int @unique 값만 보유)
+model RefundLog {
+  id            Int          @id @default(autoincrement())
+  transactionId Int          @unique // Core Transaction.id 참조 — Logical FK (cross-schema relation 제거, Phase 3-B)
+  userId        Int?
+  paidAmount    Int // 사용자 선결제 금액 (원)
+  chargedAmount Int // 실제 충전금액 (원) = kWh × unitPrice
+  refundAmount  Int // 환불금액 = paidAmount - chargedAmount
+  status        RefundStatus @default(pending)
+  requestedAt   DateTime     @default(now())
+  processedAt   DateTime? // 환불 완료 시각
+  pgRefundId    String?      @db.VarChar(200) // PG사 환불 거래번호
+  note          String?      @db.VarChar(500)
+
+  // 배치 자동화 / 재시도 관련 필드
+  attemptCount     Int       @default(0) // 누적 시도 횟수
+  maxAttempts      Int       @default(10) // 최대 시도 횟수 (운영자 재시도 시 증가)
+  nextAttemptAt    DateTime? // 다음 시도 가능 시각 (backoff)
+  lastAttemptedAt  DateTime? // 마지막 시도 시각
+  lastErrorCode    String?   @db.VarChar(50) // 마지막 PG 응답 error_code
+  lastErrorMessage String?   @db.VarChar(500) // 마지막 에러 메시지 (가시성)
+
+  // transaction relation 제거 (Phase 3-B: portal → core cross-schema FK → Logical FK로 전환)
+  user     User?           @relation(fields: [userId], references: [id])
+  attempts RefundAttempt[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([requestedAt])
+  @@index([nextAttemptAt])
+  @@map("refund_log")
+  @@schema("portal")
+}
+
+enum RefundStatus {
+  pending // 환불 대기
+  processing // 환불 진행 중
+  completed // 환불 완료
+  failed // 환불 실패
+  cancelled // 환불 취소
+  abandoned // 최대 시도 횟수 초과 (운영자 수동 재시도 필요)
+
+  @@schema("portal")
+}
+
+// 환불 시도 이력 (RefundLog 1 : N RefundAttempt)
+model RefundAttempt {
+  id             Int                 @id @default(autoincrement())
+  refundLogId    Int
+  attemptNumber  Int // 1, 2, 3, ... (RefundLog 내 순번)
+  status         RefundAttemptStatus // processing | completed | failed
+  idempotencyKey String              @db.VarChar(100) // 'EN-RFD-{logId}-{attemptNumber}'
+  startedAt      DateTime            @default(now())
+  completedAt    DateTime?
+  pgRefundId     String?             @db.VarChar(200)
+  errorCode      String?             @db.VarChar(50)
+  errorMessage   String?             @db.VarChar(1000)
+  rawResponse    String?             @db.Text // PG 응답 원문 (JSON 문자열)
+
+  refundLog RefundLog @relation(fields: [refundLogId], references: [id], onDelete: Cascade)
+
+  @@unique([refundLogId, attemptNumber])
+  @@index([status])
+  @@index([startedAt])
+  @@map("refund_attempt")
+  @@schema("portal")
+}
+
+enum RefundAttemptStatus {
+  processing
+  completed
+  failed
+
+  @@schema("portal")
+}
+
+// ─────────────────────────────────────────────
+// 충전기 설정 프로파일 (key-value)
+// ─────────────────────────────────────────────
+
+model ChargerConfig {
+  id        Int                 @id @default(autoincrement())
+  stationId String              @db.VarChar(50)
+  key       String              @db.VarChar(100)
+  value     String?             @db.Text
+  status    ChargerConfigStatus @default(normal)
+  errorDesc String?             @db.VarChar(255)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@unique([stationId, key])
+  @@index([stationId])
+  @@map("charger_config")
+  @@schema("core")
+}
+
+enum ChargerConfigStatus {
+  normal
+  error
+
+  @@schema("core")
+}
+
+// ─────────────────────────────────────────────
+// 시스템 운영 변수 (관리자가 포털에서 설정)
+// ─────────────────────────────────────────────
+
+model CsmsVariable {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique @db.VarChar(100)
+  value       String   @db.VarChar(500)
+  description String?  @db.VarChar(500)
+  updatedAt   DateTime @updatedAt
+
+  @@map("csms_variable")
+  @@schema("portal")
+}
+
+// ─────────────────────────────────────────────
+// Outbox 패턴 — 이벤트 발행 신뢰성 보장 (Phase 2-A)
+// ─────────────────────────────────────────────
+
+/// 트랜잭션 내 비즈니스 변경과 함께 기록되는 발행 대기 이벤트.
+/// OutboxRelay가 주기적으로 조회하여 Redis Stream으로 릴레이한다.
+model OutboxEvent {
+  id            BigInt    @id @default(autoincrement())
+  eventId       String    @unique // UUID v4 — Consumer idempotency 키
+  eventType     String // "TransactionStarted" 등 (이벤트 카탈로그 6-2 참조)
+  aggregateType String? // "Transaction", "Station" 등 (선택적 grouping)
+  aggregateId   String? // transactionId, stationId 등 (선택적)
+  payload       Json // 이벤트 본문 (문서 6-2의 payload 객체)
+  occurredAt    DateTime  @default(now()) // 이벤트 발생 시각
+  publishedAt   DateTime? // Redis Stream에 발행된 시각 (null = 미발행)
+  attempts      Int       @default(0) // 발행 시도 횟수
+  lastError     String? // 마지막 발행 실패 사유
+
+  @@index([publishedAt]) // relay가 publishedAt IS NULL 빠르게 조회
+  @@index([eventType])
+  @@map("outbox_event")
+  @@schema("core")
+}
+
+/// Portal Consumer가 처리한 이벤트 기록 — idempotency 중복 방지용.
+model ConsumedEvent {
+  eventId     String   @id // OutboxEvent.eventId와 동일
+  eventType   String
+  processedAt DateTime @default(now())
+  resultJson  Json? // 처리 결과 메타데이터 (선택적)
+
+  @@index([processedAt])
+  @@index([eventType])
+  @@map("consumed_event")
+  @@schema("portal")
+}
+
+// ─────────────────────────────────────────────
+// 충전 세션 투영 (Phase 3-B 신규)
+// Core Transaction의 Portal 도메인 관심사 투영 테이블.
+// Core는 OCPP 순수 데이터만 보유 → Portal은 Outbox 이벤트로 이 테이블을 동기화.
+// paymentStatus, settlementId 등 비즈니스 필드는 여기서 관리.
+// ─────────────────────────────────────────────
+
+/// Core Transaction의 Portal 투영 — 비즈니스 필드(결제/정산)를 Portal 도메인에서 관리.
+model ChargeSessionProjection {
+  id                BigInt  @id @default(autoincrement())
+  coreTransactionId Int     @unique // Core Transaction.id 참조 — Logical FK
+  sessionId         String  @unique @db.VarChar(100) // Core Transaction.sessionId 복제
+  stationId         String  @db.VarChar(50) // Core ChargingStation.id 참조 — Logical FK
+  siteId            Int? // ChargingSite.id 참조 (Portal 내부 FK)
+  partnerId         Int? // PartnerProfile.id 참조 (Portal 내부 FK)
+  connectorId       Int
+  idTag             String? @db.VarChar(50)
+
+  // 충전 데이터 (Outbox 이벤트로 갱신)
+  meterStart BigInt    @default(0) // Wh (Core meterStart 복제)
+  meterStop  BigInt? // Wh (StopTransaction 이벤트에서 갱신)
+  totalKwh   Decimal?  @db.Decimal(12, 3) // kWh (이벤트 계산값)
+  timeStart  DateTime // 충전 시작 시각
+  timeEnd    DateTime? // 충전 종료 시각
+  status     String    @db.VarChar(30) // "Pending" | "Active" | "Stopped" | "Failed"
+  stopReason String?   @db.VarChar(100)
+
+  // 금액 (이벤트로 갱신)
+  costVnd      BigInt? // 최종 요금 (VND)
+  unitPriceVnd Int? // 충전 시점 단가 (VND/kWh)
+  marginRate   Decimal? @db.Decimal(5, 2) // 충전 시점 리베이트율 스냅샷 (%)
+
+  // 정산 정책 스냅샷 (Transaction 생성 시 partner 정책 복제)
+  settlementSchedule  SettlementSchedule? // 정산 주기 snapshot
+  settlementDay       Int?                @db.SmallInt // 월간 정산일 snapshot (1~31)
+  settlementDayOfWeek Int?                @db.SmallInt // 주간 정산 요일 snapshot (1=월~5=금)
+
+  // Portal 비즈니스 필드 (Core Transaction에서 이전, Phase 3-B)
+  paymentStatus PaymentStatus? // 결제 처리 상태
+  settlementId  Int? // Settlement.id 참조 (Portal 내부 FK)
+
+  // 메타
+  lastEventAt DateTime // 마지막 이벤트 수신 시각
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 관계 (Portal 내부 FK — 동일 schema)
+  site       ChargingSite?   @relation(fields: [siteId], references: [id])
+  partner    PartnerProfile? @relation(fields: [partnerId], references: [id])
+  settlement Settlement?     @relation(fields: [settlementId], references: [id])
+
+  @@index([stationId])
+  @@index([sessionId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([siteId])
+  @@index([partnerId])
+  @@index([settlementId])
+  @@map("charge_session_projection")
+  @@schema("portal")
+}
+
+// ─────────────────────────────────────────────
+// PG (Payment Gateway) 설정
+// ─────────────────────────────────────────────
+
+model PgConfig {
+  id                Int      @id @default(autoincrement())
+  name              String   @db.VarChar(100)
+  pgType            String   @default("mbbank") @db.VarChar(50)
+  isActive          Boolean  @default(false)
+  isSandbox         Boolean  @default(true)
+  accessCode        String   @db.VarChar(100)
+  merchantId        String   @db.VarChar(100)
+  hashKey           String   @db.VarChar(255)
+  invoiceTaxcode    String?  @db.VarChar(50)
+  createOrderUrl    String   @db.VarChar(500)
+  refundUrl         String   @db.VarChar(500)
+  detailUrl         String   @db.VarChar(500)
+  ipnUrl            String   @db.VarChar(500)
+  returnUrl         String   @db.VarChar(500)
+  cancelUrl         String   @db.VarChar(500)
+  currency          String   @default("VND") @db.VarChar(10)
+  paymentTimeoutMin Int      @default(10)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  paymentOrders PaymentOrder[]
+
+  @@map("payment_pg_config")
+  @@schema("portal")
+}
+
+model PaymentOrder {
+  id              Int            @id @default(autoincrement())
+  sessionId       String         @db.VarChar(100)
+  pgConfigId      Int
+  orderReference  String         @unique @db.VarChar(100)
+  amount          Decimal        @db.Decimal(12, 2)
+  currency        String         @default("VND") @db.VarChar(10)
+  paymentMethod   String?        @db.VarChar(20)
+  status          PayOrderStatus @default(PENDING)
+  isMock          Boolean        @default(false)
+  pgSessionId     String?        @db.VarChar(200)
+  paymentUrl      String?        @db.VarChar(1000)
+  qrUrl           String?        @db.VarChar(1000)
+  expireTime      DateTime?
+  pgTransactionNo String?        @db.VarChar(200)
+  issuerTxnRef    String?        @db.VarChar(200)
+  ipnReceivedAt   DateTime?
+  ipnRawPayload   String?        @db.Text
+  expiresAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  pgConfig PgConfig @relation(fields: [pgConfigId], references: [id])
+
+  @@index([sessionId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("payment_order")
+  @@schema("portal")
+}
+
+enum PayOrderStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELLED
+  TIMEOUT
+
+  @@schema("portal")
+}

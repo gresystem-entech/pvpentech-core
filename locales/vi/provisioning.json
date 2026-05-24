@@ -1,0 +1,12 @@
+{
+  "provisionSuccess": "Cấp phép hoàn tất thành công.",
+  "provisionRejected": "Trạm sạc chưa được đăng ký.",
+  "alreadyProvisioned": "Trạm sạc này đã được cấp phép rồi.",
+  "authHeaderMissing": "Thiếu tiêu đề xác thực.",
+  "authFailed": "Xác thực thất bại.",
+  "manufacturerNotFound": "Nhà sản xuất chưa được đăng ký.",
+  "manufacturerInactive": "Kênh nhà sản xuất không hoạt động.",
+  "invalidBody": "Định dạng yêu cầu không hợp lệ.",
+  "serialNotFound": "Trạm sạc chưa được đăng ký.",
+  "manufacturerMismatch": "Trạm sạc chưa được đăng ký."
+}

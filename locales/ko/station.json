@@ -1,0 +1,19 @@
+{
+  "notFound": "충전기를 찾을 수 없습니다.",
+  "alreadyExists": "이미 등록된 충전기입니다.",
+  "invalidId": "유효하지 않은 충전기 ID 형식입니다.",
+  "siteNotFound": "충전소를 찾을 수 없습니다.",
+  "siteAlreadyExists": "이미 등록된 충전소입니다.",
+  "resetSuccess": "충전기 초기화 명령이 전송되었습니다.",
+  "passwordResetSuccess": "충전기 비밀번호가 재설정되었습니다.",
+  "connectorNotFound": "커넥터를 찾을 수 없습니다.",
+  "faultLogNotFound": "장애 로그를 찾을 수 없습니다.",
+  "faultResolved": "장애가 해결됨으로 처리되었습니다.",
+  "provisionNotFound": "프로비저닝 정보를 찾을 수 없습니다.",
+  "provisionRevoked": "충전기 프로비저닝이 취소되었습니다.",
+  "serialNotInWhitelist": "허용되지 않은 시리얼 번호입니다.",
+  "alreadyProvisioned": "이미 프로비저닝된 충전기입니다.",
+  "offline": "충전기가 오프라인 상태입니다.",
+  "activeSession": "진행 중인 충전 세션이 있어 삭제할 수 없습니다. 충전이 완료된 후 다시 시도하세요.",
+  "hasTransactionHistory": "충전 이력이 있는 충전기는 삭제할 수 없습니다. 결제·정산 기록 보존을 위해 충전 기록이 없는 상태에서만 삭제할 수 있습니다."
+}

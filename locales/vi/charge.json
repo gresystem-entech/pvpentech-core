@@ -1,0 +1,16 @@
+{
+  "stationNotFound": "Trạm sạc không tồn tại.",
+  "alreadyInUse": "Trạm sạc đang được sử dụng.",
+  "stationOffline": "Trạm sạc đang ngoại tuyến.",
+  "sessionNotFound": "Phiên sạc không tồn tại.",
+  "completed": "Sạc hoàn tất. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi.",
+  "startFailed": "Không thể bắt đầu sạc.",
+  "stopFailed": "Không thể dừng sạc.",
+  "goalReached": "Đã đạt mục tiêu sạc {{value}}.",
+  "vehicleNotConnected": "Xe không được kết nối.",
+  "noActiveSession": "Không tìm thấy phiên sạc đang hoạt động.",
+  "connectorNotFound": "Không tìm thấy cổng kết nối.",
+  "remoteStartAccepted": "Đã gửi lệnh bắt đầu sạc từ xa.",
+  "remoteStopAccepted": "Đã gửi lệnh dừng sạc từ xa.",
+  "noPaymentMethod": "Chưa đăng ký thẻ thanh toán."
+}

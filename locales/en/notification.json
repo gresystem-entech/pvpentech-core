@@ -1,0 +1,10 @@
+{
+  "chargeGoalReached": "Charging goal ({{value}}) has been reached.",
+  "chargeCompleted": "Charging completed. {{kwh}}kWh charged.",
+  "chargeStarted": "Charging has started.",
+  "chargeStopped": "Charging has stopped.",
+  "stationFaulted": "Station ({{stationId}}) has a fault.",
+  "partnerApproved": "Partner account has been approved.",
+  "partnerRejected": "Partner account application has been rejected.",
+  "sessionTimeout": "Charging session timed out."
+}

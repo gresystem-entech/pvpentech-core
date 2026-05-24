@@ -1,0 +1,10 @@
+{
+  "chargeGoalReached": "Đã đạt mục tiêu sạc ({{value}}).",
+  "chargeCompleted": "Sạc hoàn tất. Đã sạc {{kwh}}kWh.",
+  "chargeStarted": "Đã bắt đầu sạc.",
+  "chargeStopped": "Đã dừng sạc.",
+  "stationFaulted": "Trạm sạc ({{stationId}}) gặp sự cố.",
+  "partnerApproved": "Tài khoản đối tác đã được phê duyệt.",
+  "partnerRejected": "Đơn đăng ký tài khoản đối tác đã bị từ chối.",
+  "sessionTimeout": "Phiên sạc đã hết thời gian."
+}

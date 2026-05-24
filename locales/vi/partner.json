@@ -1,0 +1,14 @@
+{
+  "notFound": "Không tìm thấy đối tác.",
+  "alreadyExists": "Đối tác đã được đăng ký.",
+  "approved": "Tài khoản đối tác đã được phê duyệt.",
+  "rejected": "Tài khoản đối tác đã bị từ chối.",
+  "deactivated": "Tài khoản đối tác đã bị vô hiệu hóa.",
+  "marginUpdated": "Tỷ lệ hoa hồng đã được cập nhật.",
+  "settlementDayUpdated": "Ngày thanh toán đã được cập nhật.",
+  "bankAccountUpdated": "Tài khoản thanh toán đã được cập nhật.",
+  "settleSuccess": "Thanh toán hoàn tất.",
+  "settlementNotFound": "Không tìm thấy bản ghi thanh toán.",
+  "deleted": "Đối tác đã bị xóa.",
+  "pendingApproval": "Đối tác đang chờ phê duyệt."
+}

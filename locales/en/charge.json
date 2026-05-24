@@ -1,0 +1,16 @@
+{
+  "stationNotFound": "The charging station does not exist.",
+  "alreadyInUse": "The charging station is already in use.",
+  "stationOffline": "The charging station is offline.",
+  "sessionNotFound": "The charging session does not exist.",
+  "completed": "Charging completed. Thank you for using our service.",
+  "startFailed": "Failed to start charging.",
+  "stopFailed": "Failed to stop charging.",
+  "goalReached": "Charging goal {{value}} has been reached.",
+  "vehicleNotConnected": "The vehicle is not connected.",
+  "noActiveSession": "No active charging session found.",
+  "connectorNotFound": "Connector not found.",
+  "remoteStartAccepted": "Remote start command sent.",
+  "remoteStopAccepted": "Remote stop command sent.",
+  "noPaymentMethod": "No payment card registered."
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@pvpentech/core",
+  "version": "1.0.0",
+  "description": "OCPP gateway and charger management for Pvpentech CSMS",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@pvpentech/shared": "*",
+    "@prisma/client": "^5.10.0",
+    "bcrypt": "^5.1.1",
+    "bullmq": "^5.1.0",
+    "express": "^4.18.2",
+    "ioredis": "^5.3.2",
+    "multer": "^2.1.1",
+    "uuid": "^9.0.1",
+    "ws": "^8.16.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^2.1.0",
+    "@types/node": "^20.11.0",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.4.0"
+  }
+}

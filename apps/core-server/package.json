@@ -1,0 +1,7 @@
+{
+  "name": "@pvpentech/core-server",
+  "version": "1.0.0",
+  "description": "Pvpentech CSMS — Core server (OCPP + Internal API)",
+  "private": true,
+  "main": "dist/apps/core-server/src/index.js"
+}

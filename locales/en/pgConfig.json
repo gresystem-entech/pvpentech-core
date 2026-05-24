@@ -1,0 +1,5 @@
+{
+  "notFound": "PG configuration not found.",
+  "noActive": "No active PG configuration. Please contact the administrator.",
+  "deleteActive": "Cannot delete an active PG configuration."
+}

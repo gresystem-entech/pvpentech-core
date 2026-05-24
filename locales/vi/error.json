@@ -1,0 +1,10 @@
+{
+  "unauthorized": "Xác thực thất bại.",
+  "forbidden": "Bạn không có quyền truy cập tài nguyên này.",
+  "notFound": "Không tìm thấy tài nguyên yêu cầu.",
+  "conflict": "Tài nguyên đã tồn tại.",
+  "validationFailed": "Giá trị đầu vào không hợp lệ.",
+  "internalServer": "Đã xảy ra lỗi máy chủ nội bộ.",
+  "unprocessable": "Yêu cầu không thể được xử lý.",
+  "tooManyRequests": "Quá nhiều yêu cầu. Vui lòng thử lại sau."
+}

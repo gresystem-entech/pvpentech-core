@@ -1,0 +1,16 @@
+{
+  "success": "성공적으로 처리되었습니다.",
+  "created": "성공적으로 생성되었습니다.",
+  "updated": "성공적으로 수정되었습니다.",
+  "deleted": "성공적으로 삭제되었습니다.",
+  "internalServer": "서버 내부 오류가 발생했습니다.",
+  "notImplemented": "아직 구현되지 않은 기능입니다.",
+  "badGateway": "게이트웨이 오류가 발생했습니다.",
+  "serviceUnavailable": "서비스가 일시적으로 사용 불가능합니다.",
+  "settlement": {
+    "empty": "정산할 거래가 없습니다",
+    "transferSuccess": "송금 완료",
+    "transferFailed": "송금 실패: {{reason}}",
+    "partnerBankInfoMissing": "파트너 계좌 정보가 설정되지 않았습니다"
+  }
+}

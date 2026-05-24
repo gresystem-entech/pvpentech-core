@@ -1,0 +1,5 @@
+{
+  "notFound": "Không tìm thấy cấu hình PG.",
+  "noActive": "Không có cấu hình PG nào đang hoạt động. Vui lòng liên hệ quản trị viên.",
+  "deleteActive": "Không thể xóa cấu hình PG đang hoạt động."
+}

@@ -1,0 +1,10 @@
+{
+  "unauthorized": "Authentication failed.",
+  "forbidden": "You do not have permission to access this resource.",
+  "notFound": "The requested resource was not found.",
+  "conflict": "The resource already exists.",
+  "validationFailed": "Invalid input value.",
+  "internalServer": "An internal server error occurred.",
+  "unprocessable": "The request cannot be processed.",
+  "tooManyRequests": "Too many requests. Please try again later."
+}

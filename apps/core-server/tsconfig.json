@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../apps/core-server/dist"
+  },
+  "include": [
+    "../../packages/shared/src/**/*",
+    "../../packages/core/src/**/*",
+    "../../packages/portal/src/**/*",
+    "src/**/*"
+  ]
+}

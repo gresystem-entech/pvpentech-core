@@ -1,0 +1,16 @@
+{
+  "success": "Processed successfully.",
+  "created": "Created successfully.",
+  "updated": "Updated successfully.",
+  "deleted": "Deleted successfully.",
+  "internalServer": "An internal server error occurred.",
+  "notImplemented": "This feature is not yet implemented.",
+  "badGateway": "A gateway error occurred.",
+  "serviceUnavailable": "The service is temporarily unavailable.",
+  "settlement": {
+    "empty": "No transactions to settle",
+    "transferSuccess": "Transfer completed",
+    "transferFailed": "Transfer failed: {{reason}}",
+    "partnerBankInfoMissing": "Partner bank info is not configured"
+  }
+}

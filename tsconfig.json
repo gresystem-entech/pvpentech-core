@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "./apps/server/dist",
+    "rootDirs": [
+      "./packages/shared/src",
+      "./packages/core/src",
+      "./packages/portal/src",
+      "./apps/server/src"
+    ],
+    "strict": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@pvpentech/shared": ["packages/shared/src/index.ts"],
+      "@pvpentech/shared/*": ["packages/shared/src/*"],
+      "@pvpentech/core": ["packages/core/src/index.ts"],
+      "@pvpentech/core/*": ["packages/core/src/*"],
+      "@pvpentech/portal": ["packages/portal/src/index.ts"],
+      "@pvpentech/portal/*": ["packages/portal/src/*"],
+      "@core/*": ["packages/core/src/*"],
+      "@portal/*": ["packages/portal/src/*"],
+      "@shared/*": ["packages/shared/src/*"]
+    }
+  },
+  "include": [
+    "packages/shared/src/**/*",
+    "packages/core/src/**/*",
+    "packages/portal/src/**/*",
+    "apps/server/src/**/*",
+    "apps/core-server/src/**/*",
+    "apps/portal-server/src/**/*"
+  ],
+  "exclude": ["node_modules", "apps/server/dist", "scripts", "tests"]
+}

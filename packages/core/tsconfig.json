@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "composite": true,
+    "baseUrl": "../..",
+    "paths": {
+      "@pvpentech/shared": ["packages/shared/src/index.ts"],
+      "@pvpentech/shared/*": ["packages/shared/src/*"],
+      "@core/*": ["packages/core/src/*"]
+    }
+  },
+  "references": [
+    { "path": "../shared" }
+  ],
+  "include": ["packages/core/src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

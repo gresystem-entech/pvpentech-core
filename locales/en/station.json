@@ -1,0 +1,19 @@
+{
+  "notFound": "Charging station not found.",
+  "alreadyExists": "Charging station already registered.",
+  "invalidId": "Invalid charging station ID format.",
+  "siteNotFound": "Charging site not found.",
+  "siteAlreadyExists": "Charging site already registered.",
+  "resetSuccess": "Station reset command sent.",
+  "passwordResetSuccess": "Station password has been reset.",
+  "connectorNotFound": "Connector not found.",
+  "faultLogNotFound": "Fault log not found.",
+  "faultResolved": "Fault marked as resolved.",
+  "provisionNotFound": "Provisioning record not found.",
+  "provisionRevoked": "Station provisioning has been revoked.",
+  "serialNotInWhitelist": "Serial number is not in the allowed list.",
+  "alreadyProvisioned": "This station is already provisioned.",
+  "offline": "The charging station is offline.",
+  "activeSession": "Cannot delete: an active charging session is in progress. Try again after the session completes.",
+  "hasTransactionHistory": "Cannot delete a station that has charging history. Stations with completed transactions are preserved to protect payment and settlement records."
+}

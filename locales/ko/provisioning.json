@@ -1,0 +1,12 @@
+{
+  "provisionSuccess": "프로비저닝이 완료되었습니다.",
+  "provisionRejected": "등록되지 않은 충전기입니다.",
+  "alreadyProvisioned": "이미 프로비저닝이 완료된 충전기입니다.",
+  "authHeaderMissing": "인증 헤더가 없습니다.",
+  "authFailed": "인증에 실패하였습니다.",
+  "manufacturerNotFound": "등록되지 않은 제조사입니다.",
+  "manufacturerInactive": "비활성화된 제조사 채널입니다.",
+  "invalidBody": "요청 형식이 올바르지 않습니다.",
+  "serialNotFound": "등록되지 않은 충전기입니다.",
+  "manufacturerMismatch": "등록되지 않은 충전기입니다."
+}

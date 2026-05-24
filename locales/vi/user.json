@@ -1,0 +1,14 @@
+{
+  "notFound": "Không tìm thấy người dùng.",
+  "alreadyExists": "Người dùng đã được đăng ký.",
+  "cannotModifySelf": "Bạn không thể xóa hoặc vô hiệu hóa tài khoản của chính mình.",
+  "activated": "Tài khoản người dùng đã được kích hoạt.",
+  "deactivated": "Tài khoản người dùng đã bị vô hiệu hóa.",
+  "cardNotFound": "Không tìm thấy thẻ đã đăng ký.",
+  "cardAdded": "Thẻ đã được đăng ký.",
+  "cardDeleted": "Thẻ đã bị xóa.",
+  "tokenBlocked": "Thẻ đã bị chặn.",
+  "tokenUnblocked": "Đã gỡ chặn thẻ.",
+  "passwordChanged": "Mật khẩu đã được thay đổi.",
+  "profileUpdated": "Hồ sơ đã được cập nhật."
+}
