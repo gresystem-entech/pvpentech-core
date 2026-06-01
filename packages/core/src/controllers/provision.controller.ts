@@ -14,6 +14,15 @@ const registerSchema = z.object({
   siteId: z.number().int().positive().optional(),
   // v2.0: 제조사 매핑 (신규 등록 시 필수 권장)
   manufacturerId: z.number().int().positive().optional(),
+  // v2.1: 시간당 충전용량 (kWh/h)
+  chargingKwh: z.number().nonnegative().max(9999.99).optional(),
+});
+
+const updateSchema = z.object({
+  serialNumber: z.string().min(1).max(100).optional(),
+  rejectReason: z.string().optional(),
+  // v2.1: 시간당 충전용량 (kWh/h)
+  chargingKwh: z.number().nonnegative().max(9999.99).optional(),
 });
 
 export class ProvisionController {
@@ -31,7 +40,7 @@ export class ProvisionController {
 
   register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { serialNumber, modelName, clientId, siteId, manufacturerId } = registerSchema.parse(req.body);
+      const { serialNumber, modelName, clientId, siteId, manufacturerId, chargingKwh } = registerSchema.parse(req.body);
       const record = await this.provisionService.register(
         serialNumber,
         req.user?.username || 'unknown',
@@ -39,6 +48,7 @@ export class ProvisionController {
         clientId,
         siteId,
         manufacturerId,
+        chargingKwh,
       );
       res.status(201).json({ success: true, data: record });
     } catch (error) {
@@ -62,8 +72,8 @@ export class ProvisionController {
 
   update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { serialNumber, rejectReason } = req.body;
-      const record = await this.provisionService.update(Number(req.params.id), { serialNumber, rejectReason });
+      const { serialNumber, rejectReason, chargingKwh } = updateSchema.parse(req.body);
+      const record = await this.provisionService.update(Number(req.params.id), { serialNumber, rejectReason, chargingKwh });
       res.json({ success: true, data: record });
     } catch (error) {
       next(error);
@@ -98,7 +108,9 @@ export class ProvisionController {
   };
 
   chargerAuth = async (req: Request, res: Response): Promise<void> => {
-    // KST 타임스탬프 (YYYY-MM-DD HH:mm:ss)
+    // KST 타임스탬프 (YYYY-MM-DD HH:mm:ss) — 제조사 프로토콜 요구사항으로 Asia/Seoul 고정.
+    // timeZone 인자를 명시하므로 서버 OS TZ와 무관하게 결정적으로 동작한다.
+    // 운영 TZ 변경이 필요하면 env.TIMEZONE 연동을 검토할 것.
     const timestamp = new Date().toLocaleString('ko-KR', {
       timeZone: 'Asia/Seoul',
       year: 'numeric',

@@ -8,9 +8,11 @@
  *   현재: siteId 값은 저장하되 존재 여부 검사를 생략 (TODO 주석으로 명시).
  */
 import { prismaCore as prisma } from '@pvpentech/shared/config/database';
+import { env } from '@pvpentech/shared/config/env';
 import { logger } from '@pvpentech/shared/config/logger';
 import { ocppGateway } from '@core/ocpp/gateway.impl';
 import { parsePagination } from '@pvpentech/shared/utils/auth';
+import { getZonedDayRange } from '@pvpentech/shared/utils';
 import { ConflictError, NotFoundError } from '@pvpentech/shared/errors';
 
 interface CreateStationDto {
@@ -19,6 +21,7 @@ interface CreateStationDto {
   manufacturer?: string;
   serialNumber?: string;
   firmwareVersion?: string;
+  chargingKwh?: number;
 }
 
 interface UpdateStationDto {
@@ -27,6 +30,7 @@ interface UpdateStationDto {
   serialNumber?: string;
   modelName?: string;
   firmwareVersion?: string;
+  chargingKwh?: number;
 }
 
 export class StationService {
@@ -64,9 +68,8 @@ export class StationService {
       prisma.chargingStation.count({ where }),
     ]);
 
-    // 오늘 충전량 집계
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    // 오늘 충전량 집계 — env.TIMEZONE 기준 자정(비즈니스 TZ)
+    const { start: todayStart } = getZonedDayRange(env.TIMEZONE);
 
     const todayGroups = await prisma.transaction.groupBy({
       by: ['stationId'],

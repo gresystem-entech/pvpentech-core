@@ -6,5 +6,6 @@
   "validationFailed": "Giá trị đầu vào không hợp lệ.",
   "internalServer": "Đã xảy ra lỗi máy chủ nội bộ.",
   "unprocessable": "Yêu cầu không thể được xử lý.",
-  "tooManyRequests": "Quá nhiều yêu cầu. Vui lòng thử lại sau."
+  "tooManyRequests": "Quá nhiều yêu cầu. Vui lòng thử lại sau.",
+  "bankingError": "Đã xảy ra lỗi trong quá trình xử lý thanh toán."
 }

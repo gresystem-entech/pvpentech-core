@@ -76,6 +76,11 @@ router.get('/', controller.list);
  *               manufacturer: { type: string }
  *               serialNumber: { type: string }
  *               firmwareVersion: { type: string }
+ *               chargingKwh:
+ *                 type: number
+ *                 format: float
+ *                 example: 3.5
+ *                 description: "시간당 충전용량 (kWh/h)"
  *     responses:
  *       201:
  *         description: 생성됨
@@ -303,7 +308,13 @@ router.get('/:id', controller.findById);
  *               siteId: { type: integer }
  *               manufacturer: { type: string }
  *               serialNumber: { type: string }
+ *               modelName: { type: string }
  *               firmwareVersion: { type: string }
+ *               chargingKwh:
+ *                 type: number
+ *                 format: float
+ *                 example: 3.5
+ *                 description: "시간당 충전용량 (kWh/h) — ChargingStation에 저장됨"
  *     responses:
  *       200:
  *         description: 성공

@@ -31,8 +31,12 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
  */
 // 예제 CSV 다운로드 (before /:id to avoid route conflict)
 router.get('/sample-csv', (_req, res) => {
-  // v2.0: manufacturerChannelId 컬럼 추가
-  const csv = 'serialNumber,manufacturerChannelId\nSN-VENDOR-2026-001,vendor_a\nSN-VENDOR-2026-002,vendor_a\nSN-VENDOR-2026-003,vendor_b\n';
+  // v2.1: chargingKwh 컬럼 추가
+  const csv =
+    'serialNumber,manufacturerChannelId,chargingKwh\n' +
+    'SN-VENDOR-2026-001,vendor_a,3.5\n' +
+    'SN-VENDOR-2026-002,vendor_a,11\n' +
+    'SN-VENDOR-2026-003,vendor_b,22\n';
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="provisioning_sample.csv"');
   res.send(csv);
@@ -58,7 +62,7 @@ router.get('/sample-csv', (_req, res) => {
  *               file:
  *                 type: string
  *                 format: binary
- *                 description: serialNumber 컬럼을 포함한 CSV 파일
+ *                 description: "serialNumber 컬럼을 포함한 CSV 파일. 선택 컬럼: manufacturerChannelId, chargingKwh(시간당 충전용량 kWh/h, 기본값 3.5)"
  *     responses:
  *       200:
  *         description: 일괄 등록 결과
@@ -89,12 +93,17 @@ router.post(
         .on('error', reject);
     });
 
-    // v2.0: manufacturerChannelId 컬럼 지원
+    // v2.1: chargingKwh 컬럼 지원 (빈 문자열은 undefined → service/DB default 3.5 적용)
     const rows = records
-      .map((r) => ({
-        serialNumber: r.serialNumber || '',
-        manufacturerChannelId: r.manufacturerChannelId || undefined,
-      }))
+      .map((r) => {
+        const kwhRaw = (r.chargingKwh ?? '').toString().trim();
+        const kwh = kwhRaw === '' ? undefined : Number(kwhRaw);
+        return {
+          serialNumber: r.serialNumber || '',
+          manufacturerChannelId: r.manufacturerChannelId || undefined,
+          chargingKwh: kwh,
+        };
+      })
       .filter((r) => r.serialNumber);
 
     const result = await provisionService.bulkRegister(rows, req.user?.username || 'unknown');
@@ -157,6 +166,8 @@ router.get('/', controller.list);
  *               modelName: { type: string, maxLength: 100 }
  *               clientId: { type: string, maxLength: 50 }
  *               siteId: { type: integer }
+ *               manufacturerId: { type: integer }
+ *               chargingKwh: { type: number, format: float, example: 3.5, description: "시간당 충전용량 (kWh/h). 생략 시 기본값 3.5 적용" }
  *     responses:
  *       201:
  *         description: 등록 성공
@@ -216,6 +227,7 @@ router.get('/:id', controller.findById);
  *             properties:
  *               serialNumber: { type: string }
  *               rejectReason: { type: string }
+ *               chargingKwh: { type: number, format: float, example: 3.5, description: "시간당 충전용량 (kWh/h)" }
  *     responses:
  *       200:
  *         description: 성공

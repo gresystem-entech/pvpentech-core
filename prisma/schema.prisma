@@ -21,6 +21,7 @@ model ChargingStation {
   vendorName        String?       @db.VarChar(100) // 제조사명 (BootNotification에서 업데이트)
   manufacturer      String?       @db.VarChar(100) // CS 등록 시 입력 제조사명
   firmwareVersion   String?       @db.VarChar(50)
+  chargingKwh       Decimal       @default(3.5) @db.Decimal(6, 2) // 시간당 충전용량 (kWh/h) — 실제 운영값
   firmwareStatus    String?       @db.VarChar(30) // 최신 FirmwareStatusNotification (Idle/Downloading/Downloaded/Installing/Installed/InstallationFailed 등)
   diagnosticsStatus String?       @db.VarChar(30) // 최신 DiagnosticsStatusNotification (Idle/Uploading/Uploaded/UploadFailed)
   serialNumber      String?       @db.VarChar(100)
@@ -667,6 +668,9 @@ model ChargerProvisioning {
   manufacturerId Int?
   manufacturer   Manufacturer? @relation(fields: [manufacturerId], references: [id])
 
+  // v2.1 신규 추가
+  chargingKwh    Decimal       @default(3.5) @db.Decimal(6, 2) // 사전 등록값 (provisioning 완료 시 ChargingStation으로 복사됨)
+
   chargingStation ChargingStation? @relation(fields: [stationId], references: [id])
 
   @@index([serialNumber])
@@ -1016,6 +1020,8 @@ model PgConfig {
   merchantId        String   @db.VarChar(100)
   hashKey           String   @db.VarChar(255)
   invoiceTaxcode    String?  @db.VarChar(50)
+  customerId        String?  @db.VarChar(100)
+  customerName      String?  @db.VarChar(255)
   createOrderUrl    String   @db.VarChar(500)
   refundUrl         String   @db.VarChar(500)
   detailUrl         String   @db.VarChar(500)
@@ -1072,5 +1078,38 @@ enum PayOrderStatus {
   CANCELLED
   TIMEOUT
 
+  @@schema("portal")
+}
+
+// ─────────────────────────────────────────────
+// 감사 로그 (v2.1 신규)
+// ─────────────────────────────────────────────
+
+/// 일반 비즈니스 데이터 변경 감사 로그 (append-only).
+/// HTTP 2xx 응답이 완료된 시점에만 flush된다.
+model AuditLog {
+  id            BigInt   @id @default(autoincrement())
+  requestId     String?
+
+  userId        Int?
+  userIp        String?
+  userAgent     String?
+  httpMethod    String?
+  httpPath      String?
+
+  model         String
+  action        String
+  resourceId    String?
+
+  before        Json?
+  after         Json?
+  changedFields String[]
+
+  createdAt     DateTime @default(now())
+
+  @@index([model, resourceId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_log")
   @@schema("portal")
 }

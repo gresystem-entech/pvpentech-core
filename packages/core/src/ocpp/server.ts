@@ -71,6 +71,7 @@ export function initOcppWebSocketServer(server: http.Server): void {
     }
 
     logger.info({ stationId }, 'Charging station connected');
+    // 기존 ws가 있으면 connectionManager.register 내부에서 graceful close 후 교체된다.
     connectionManager.register(stationId, ws);
 
     ws.on('message', (data: Buffer | ArrayBuffer | Buffer[]) => {
@@ -82,6 +83,17 @@ export function initOcppWebSocketServer(server: http.Server): void {
 
     ws.on('close', (code, reason) => {
       const reasonStr = reason.toString();
+      // 이 ws가 이미 새 연결로 교체된 경우 정리 작업을 skip.
+      // (그렇지 않으면 stale ws의 close 이벤트가 새 ws의 등록을 제거하고
+      //  충전기를 잘못 오프라인으로 표시함)
+      if (connectionManager.get(stationId) !== ws) {
+        logger.info(
+          { stationId, code, reason: reasonStr },
+          'Stale OCPP WebSocket closed (already replaced)'
+        );
+        return;
+      }
+
       logger.info({ stationId, code, reason: reasonStr }, 'Charging station disconnected');
       connectionManager.unregister(stationId);
 
@@ -112,7 +124,9 @@ export function initOcppWebSocketServer(server: http.Server): void {
 
     ws.on('error', (error) => {
       logger.error({ stationId, error }, 'WebSocket error');
-      connectionManager.unregister(stationId);
+      if (connectionManager.get(stationId) === ws) {
+        connectionManager.unregister(stationId);
+      }
     });
   });
 

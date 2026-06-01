@@ -9,6 +9,16 @@ const createStationSchema = z.object({
   manufacturer: z.string().optional(),
   serialNumber: z.string().optional(),
   firmwareVersion: z.string().optional(),
+  chargingKwh: z.number().nonnegative().max(9999.99).optional(),
+});
+
+const updateStationSchema = z.object({
+  siteId: z.coerce.number().int().positive().nullable().optional(),
+  manufacturer: z.string().optional(),
+  serialNumber: z.string().optional(),
+  modelName: z.string().optional(),
+  firmwareVersion: z.string().optional(),
+  chargingKwh: z.number().nonnegative().max(9999.99).optional(),
 });
 
 const faultLogSchema = z.object({
@@ -54,7 +64,8 @@ export class StationController {
 
   update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const station = await this.stationService.update(req.params.id, req.body);
+      const data = updateStationSchema.parse(req.body);
+      const station = await this.stationService.update(req.params.id, data);
       res.json({ success: true, data: station });
     } catch (error) {
       next(error);

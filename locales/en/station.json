@@ -15,5 +15,8 @@
   "alreadyProvisioned": "This station is already provisioned.",
   "offline": "The charging station is offline.",
   "activeSession": "Cannot delete: an active charging session is in progress. Try again after the session completes.",
-  "hasTransactionHistory": "Cannot delete a station that has charging history. Stations with completed transactions are preserved to protect payment and settlement records."
+  "hasTransactionHistory": "Cannot delete a station that has charging history. Stations with completed transactions are preserved to protect payment and settlement records.",
+  "invalidSerial": "Serial number must contain digits only.",
+  "ambiguousSerial": "Multiple chargers match this serial number. Please enter the exact serial number.",
+  "revoked": "This charging station has been suspended."
 }

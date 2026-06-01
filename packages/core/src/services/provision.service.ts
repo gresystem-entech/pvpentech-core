@@ -74,6 +74,7 @@ export class ProvisionService {
           serialNumber,
           passwordHash,
           status: 'Offline',
+          chargingKwh: record.chargingKwh,
           ...(resolvedModel ? { modelName: resolvedModel } : {}),
         },
         update: {
@@ -134,6 +135,7 @@ export class ProvisionService {
     clientId?: string,
     siteId?: number,
     manufacturerId?: number,
+    chargingKwh?: number,
   ) {
     const existing = await prisma.chargerProvisioning.findUnique({
       where: { serialNumber },
@@ -155,6 +157,7 @@ export class ProvisionService {
             status: 'Offline',
             ...(modelName ? { modelName } : {}),
             ...(siteId ? { siteId } : {}),
+            ...(chargingKwh !== undefined ? { chargingKwh } : {}),
           },
         }),
         prisma.chargerProvisioning.create({
@@ -166,6 +169,7 @@ export class ProvisionService {
             stationId: clientId,
             ...(modelName ? { modelName } : {}),
             ...(manufacturerId ? { manufacturerId } : {}),
+            ...(chargingKwh !== undefined ? { chargingKwh } : {}),
           },
         }),
       ]);
@@ -179,6 +183,7 @@ export class ProvisionService {
         status: 'registered',
         ...(modelName ? { modelName } : {}),
         ...(manufacturerId ? { manufacturerId } : {}),
+        ...(chargingKwh !== undefined ? { chargingKwh } : {}),
       },
     });
   }
@@ -209,7 +214,7 @@ export class ProvisionService {
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async update(id: number, data: { serialNumber?: string; rejectReason?: string }) {
+  async update(id: number, data: { serialNumber?: string; rejectReason?: string; chargingKwh?: number }) {
     const record = await this.findById(id);
     if (data.serialNumber && record.status === 'provisioned') {
       throw new ConflictError('프로비저닝이 완료된 항목의 시리얼번호는 변경할 수 없습니다.');
@@ -218,7 +223,7 @@ export class ProvisionService {
   }
 
   async bulkRegister(
-    rows: Array<{ serialNumber: string; manufacturerChannelId?: string }>,
+    rows: Array<{ serialNumber: string; manufacturerChannelId?: string; chargingKwh?: number }>,
     registeredBy: string,
   ) {
     let registered = 0;
@@ -244,7 +249,12 @@ export class ProvisionService {
             manufacturerId = channelCache[ch] as number;
           }
         }
-        await this.register(sn, registeredBy, undefined, undefined, undefined, manufacturerId);
+        if (row.chargingKwh !== undefined && (!Number.isFinite(row.chargingKwh) || row.chargingKwh < 0)) {
+          errors.push({ serialNumber: sn, reason: 'chargingKwh 값이 유효하지 않습니다.' });
+          skipped++;
+          continue;
+        }
+        await this.register(sn, registeredBy, undefined, undefined, undefined, manufacturerId, row.chargingKwh);
         registered++;
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);

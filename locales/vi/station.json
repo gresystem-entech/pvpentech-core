@@ -15,5 +15,8 @@
   "alreadyProvisioned": "Trạm sạc này đã được cấp phép.",
   "offline": "Trạm sạc đang ngoại tuyến.",
   "activeSession": "Không thể xóa: đang có phiên sạc hoạt động. Vui lòng thử lại sau khi phiên sạc kết thúc.",
-  "hasTransactionHistory": "Không thể xóa trạm sạc đã có lịch sử sạc. Các trạm có giao dịch đã hoàn tất được giữ lại để bảo toàn dữ liệu thanh toán và quyết toán."
+  "hasTransactionHistory": "Không thể xóa trạm sạc đã có lịch sử sạc. Các trạm có giao dịch đã hoàn tất được giữ lại để bảo toàn dữ liệu thanh toán và quyết toán.",
+  "invalidSerial": "Số sê-ri chỉ được chứa chữ số.",
+  "ambiguousSerial": "Có nhiều trạm sạc khớp với số sê-ri này. Vui lòng nhập số sê-ri chính xác.",
+  "revoked": "Trạm sạc này đã bị tạm ngừng hoạt động."
 }

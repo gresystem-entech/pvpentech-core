@@ -47,6 +47,10 @@ export async function startTransactionHandler(
 
   // 정산 snapshot: Phase 4-B에서 Portal DB 직접 접근 제거 → null로 설정.
   // Portal Consumer가 TransactionStarted 이벤트를 수신하여 보완.
+  // ※ #62(StartTransaction 시 마진율=충전소 rebateRate 적용)은 Core에서 직접 적용 불가.
+  //   rebateRate가 속한 ChargingSite는 Portal-domain 모델(prismaPortal.chargingSite)이며
+  //   Core의 prismaCore 프로젝션에는 노출되지 않는다(Phase 3-B/3-D 도메인 분리).
+  //   → #62의 rebateRate 적용은 Portal Consumer(TransactionStarted 수신 시 projection/정산)에서 수행한다.
   // TODO(Phase 5): Core Internal API에 /api/internal/v1/partners/by-station/:stationId 추가 후
   //               coreApiClient 호출로 실제 값 조회 구현.
   const settlementSnapshot = {

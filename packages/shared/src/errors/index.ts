@@ -60,3 +60,14 @@ export class EmptySettlementError extends AppError {
     super('정산할 거래가 없습니다.', 400, 'EMPTY_SETTLEMENT', messageKey);
   }
 }
+
+export class BankingError extends AppError {
+  constructor(
+    message = '결제 처리 중 오류가 발생했습니다.',
+    messageKey = 'error:bankingError',
+    public readonly bankingErrorCode?: string,
+    public readonly bankingMessage?: string,
+  ) {
+    super(message, 502, 'BANKING_ERROR', messageKey);
+  }
+}

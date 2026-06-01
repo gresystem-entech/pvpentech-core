@@ -6,6 +6,18 @@ dotenv.config();
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(3000),
+  TIMEZONE: z.string().default('Asia/Ho_Chi_Minh'),
+  // MB Bank 연동 전용 TZ. 미설정 시 TIMEZONE 값을 폴백.
+  MB_BANK_TZ: z.string().optional(),
+
+  // 배치 잡 cron 패턴 (TIMEZONE 기준 로컬시간으로 해석)
+  // 영업시간 의존 잡: tz: env.TIMEZONE 명시
+  SETTLEMENT_MORNING_CRON: z.string().default('0 5 * * *'),    // 베트남 05:00
+  SETTLEMENT_AFTERNOON_CRON: z.string().default('0 16 * * *'), // 베트남 16:00
+  REFUND_BATCH_CRON: z.string().default('0 14 * * *'),         // 베트남 14:00 (MB Bank 영업시간)
+  // 시스템 유지보수 잡: tz 미지정(UTC)
+  SESSION_TIMEOUT_CRON: z.string().default('*/2 * * * *'),     // 2분마다
+  DAILY_CLEANUP_CRON: z.string().default('0 3 * * *'),         // UTC 03:00
 
   DATABASE_URL: z.string().url(),
 
