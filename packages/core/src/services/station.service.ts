@@ -13,7 +13,7 @@ import { logger } from '@pvpentech/shared/config/logger';
 import { ocppGateway } from '@core/ocpp/gateway.impl';
 import { parsePagination } from '@pvpentech/shared/utils/auth';
 import { getZonedDayRange } from '@pvpentech/shared/utils';
-import { ConflictError, NotFoundError } from '@pvpentech/shared/errors';
+import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '@pvpentech/shared/errors';
 
 interface CreateStationDto {
   id: string;
@@ -238,6 +238,80 @@ export class StationService {
 
     logger.info({ stationId }, 'Station OCPP password reset');
     return plainPassword;
+  }
+
+  /**
+   * 모바일용: 제조사 시리얼번호(ChargerProvisioning.serialNumber)로 충전기 조회.
+   *
+   * 고객이 입력하는 번호 = 제조사 시리얼 = ChargerProvisioning.serialNumber.
+   * (충전기 식별자 ChargingStation.id = "EN"+7자리는 별도)
+   *
+   * 1) 정확 일치 → 2) suffix(endsWith) 매칭 → 복수면 400 / 0건이면 404
+   * revoked|rejected → 403, stationId 미발급 → 404, station 미존재 → 404
+   *
+   * 업스트림 #66(e69cda5) findBySerial 로직 복원 (Stage8 회귀 수정).
+   */
+  async findBySerial(serial: string) {
+    // 1단계: 정확 일치 조회
+    let matches = await prisma.chargerProvisioning.findMany({
+      where: { serialNumber: serial },
+    });
+
+    // 2단계: 정확 일치 없으면 suffix LIKE 매칭
+    if (matches.length === 0) {
+      matches = await prisma.chargerProvisioning.findMany({
+        where: { serialNumber: { endsWith: serial } },
+      });
+    }
+
+    // 복수 결과 → 400
+    if (matches.length > 1) {
+      throw new BadRequestError(
+        '해당 시리얼 번호와 일치하는 충전기가 여러 대 있습니다.',
+        'station:ambiguousSerial',
+      );
+    }
+
+    // 0건 → 404
+    if (matches.length === 0) {
+      throw new NotFoundError('등록되지 않은 충전기입니다.', 'station:notFound');
+    }
+
+    const provisioning = matches[0];
+
+    // revoked / rejected → 403
+    if (provisioning.status === 'revoked' || provisioning.status === 'rejected') {
+      throw new ForbiddenError('사용이 정지된 충전기입니다.', 'station:revoked');
+    }
+
+    // stationId null (미프로비저닝) → 404
+    if (!provisioning.stationId) {
+      throw new NotFoundError('등록되지 않은 충전기입니다.', 'station:notFound');
+    }
+
+    const station = await prisma.chargingStation.findUnique({
+      where: { id: provisioning.stationId },
+      include: { connectors: true },
+    });
+
+    if (!station) {
+      throw new NotFoundError('등록되지 않은 충전기입니다.', 'station:notFound');
+    }
+
+    logger.info({ serial, stationId: station.id }, 'Mobile: station found by serial');
+
+    return {
+      stationId: station.id,
+      serialNumber: provisioning.serialNumber,
+      modelName: station.modelName ?? provisioning.modelName,
+      status: station.status,
+      siteId: station.siteId,
+      isConnected: ocppGateway.isStationConnected(station.id),
+      connectors: station.connectors.map((c) => ({
+        connectorId: c.connectorId,
+        status: c.currentStatus,
+      })),
+    };
   }
 
   async getOnlineStations() {

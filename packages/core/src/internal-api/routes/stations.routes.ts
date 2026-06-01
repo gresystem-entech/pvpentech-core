@@ -6,6 +6,7 @@
  * | 메서드 | 경로 | 설명 |
  * |--------|------|------|
  * | GET | /stations | 목록 (페이지네이션, status/keyword 필터) |
+ * | GET | /stations/by-serial/:serial | 제조사 시리얼번호로 조회 (모바일) |
  * | GET | /stations/:stationId | 상세 (커넥터 포함) |
  * | GET | /stations/:stationId/connection | 연결 상태 |
  * | GET | /stations/:stationId/connectors | 커넥터 목록 |
@@ -35,6 +36,20 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
     const result = await stationService.list({ status, keyword, page, limit });
     res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── GET /stations/by-serial/:serial — 제조사 시리얼번호로 조회 (모바일) ──────
+// 정적 세그먼트 우선: 반드시 /:stationId 보다 먼저 등록 (라우트 가로채임 방지).
+// 도메인 에러(400/404/403, AppError)는 상위 errorHandlerMiddleware가 HTTP 상태로 매핑.
+
+router.get('/by-serial/:serial', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { serial } = req.params;
+    const station = await stationService.findBySerial(serial);
+    res.json({ success: true, data: station });
   } catch (err) {
     next(err);
   }
